@@ -19,6 +19,10 @@
     </div>
   </a>
   <div class="nav-left" style="gap:14px;">
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle theme">
+      <span class="tt-icon tt-moon">🌙</span>
+      <span class="tt-icon tt-sun">☀️</span>
+    </button>
     <a href="#features" class="btn-ghost">Features</a>
     <button class="btn-login" onclick="openModal('login')">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -222,5 +226,16 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+  }
+  // Persist theme
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light-mode');
+  }
+</script>
 </body>
 </html>
