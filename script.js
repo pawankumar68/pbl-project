@@ -8,7 +8,15 @@
    ============================================================ */
 function toggleTheme() {
   document.body.classList.toggle('light-mode');
-  localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+  const isLight = document.body.classList.contains('light-mode');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  applyMonacoTheme(isLight);
+}
+
+function applyMonacoTheme(isLight) {
+  if (typeof monaco === 'undefined') return;
+  const monacoTheme = isLight ? 'vs' : 'vs-dark';
+  monaco.editor.setTheme(monacoTheme);
 }
 
 // Apply saved theme immediately on every page load
@@ -170,8 +178,9 @@ function cg_initMonaco() {
   if (!document.getElementById('monaco-editor-codegen')) return;
   require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
   require(['vs/editor/editor.main'], function () {
+    const cgTheme = document.body.classList.contains('light-mode') ? 'vs' : 'vs-dark';
     cg_editor = monaco.editor.create(document.getElementById('monaco-editor-codegen'), {
-      value: '', language: 'javascript', theme: 'vs-dark',
+      value: '', language: 'javascript', theme: cgTheme,
       fontSize: 14, fontFamily: "'Space Mono', monospace",
       minimap: { enabled: false }, scrollBeyondLastLine: false,
       automaticLayout: true, lineNumbers: 'on',
@@ -319,9 +328,10 @@ function as_initMonaco() {
   if (!document.getElementById('monaco-editor-assistant')) return;
   require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
   require(['vs/editor/editor.main'], function () {
+    const asTheme = document.body.classList.contains('light-mode') ? 'vs' : 'vs-dark';
     as_editor = monaco.editor.create(document.getElementById('monaco-editor-assistant'), {
       value: '// Paste or type your code here\n',
-      language: 'javascript', theme: 'vs-dark',
+      language: 'javascript', theme: asTheme,
       fontSize: 13, fontFamily: "'Space Mono', monospace",
       minimap: { enabled: false }, scrollBeyondLastLine: false,
       automaticLayout: true, lineNumbers: 'on',
