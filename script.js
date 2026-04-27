@@ -10,20 +10,15 @@ function toggleTheme() {
   document.body.classList.toggle('light-mode');
   const isLight = document.body.classList.contains('light-mode');
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  applyMonacoTheme(isLight);
-}
-
-function applyMonacoTheme(isLight) {
-  if (typeof monaco === 'undefined') return;
-  const monacoTheme = isLight ? 'vs' : 'vs-dark';
-  monaco.editor.setTheme(monacoTheme);
+  // Apply matching Monaco theme
+  if (typeof monaco !== 'undefined')
+    monaco.editor.setTheme(isLight ? 'vs' : 'vs-dark');
 }
 
 // Apply saved theme immediately on every page load
 (function () {
-  if (localStorage.getItem('theme') === 'light') {
+  if (localStorage.getItem('theme') === 'light')
     document.body.classList.add('light-mode');
-  }
 })();
 
 
@@ -36,13 +31,15 @@ function openModal(tab) {
 }
 
 function closeModal() {
-  const el = document.getElementById('loginModal');
-  if (el) el.classList.remove('active');
+  document.getElementById('loginModal')?.classList.remove('active');
 }
 
 function handleOverlayClick(e) {
   if (e.target === document.getElementById('loginModal')) closeModal();
 }
+
+// Close modal on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 function switchTab(tab) {
   const panelLogin  = document.getElementById('panel-login');
@@ -52,45 +49,39 @@ function switchTab(tab) {
   const indicator   = document.getElementById('tab-indicator');
   if (!panelLogin) return;
 
-  // Clear errors
+  // Clear errors on tab switch
   showError('login-error', '');
   showError('signup-error', '');
 
-  if (tab === 'signup') {
-    panelLogin.style.display  = 'none';
-    panelSignup.style.display = 'block';
-    tabLogin.classList.remove('active');
-    tabSignup.classList.add('active');
-    if (indicator) indicator.classList.add('right');
-  } else {
-    panelLogin.style.display  = 'block';
-    panelSignup.style.display = 'none';
-    tabLogin.classList.add('active');
-    tabSignup.classList.remove('active');
-    if (indicator) indicator.classList.remove('right');
-  }
+  const isSignup = tab === 'signup';
+  panelLogin.style.display  = isSignup ? 'none'  : 'block';
+  panelSignup.style.display = isSignup ? 'block' : 'none';
+  tabLogin.classList.toggle('active', !isSignup);
+  tabSignup.classList.toggle('active', isSignup);
+  indicator?.classList.toggle('right', isSignup);
 }
 
 function showError(id, msg) {
   const el = document.getElementById(id);
   if (!el) return;
-  if (msg) { el.textContent = msg; el.classList.add('show'); }
-  else      { el.textContent = ''; el.classList.remove('show'); }
+  el.textContent = msg;
+  el.classList.toggle('show', !!msg);
 }
 
 function togglePassword(inputId, btn) {
   const input = document.getElementById(inputId);
   if (!input) return;
-  if (input.type === 'password') { input.type = 'text'; btn.style.opacity = '0.9'; }
-  else                           { input.type = 'password'; btn.style.opacity = '0.4'; }
+  const isHidden    = input.type === 'password';
+  input.type        = isHidden ? 'text' : 'password';
+  btn.style.opacity = isHidden ? '0.9' : '0.4';
 }
 
 function handleLogin() {
   const email    = document.getElementById('login-email')?.value.trim();
   const password = document.getElementById('login-password')?.value;
-  if (!email)    { showError('login-error', '⚠ Please enter your email.'); return; }
-  if (!password) { showError('login-error', '⚠ Please enter your password.'); return; }
-  if (!/\S+@\S+\.\S+/.test(email)) { showError('login-error', '⚠ Enter a valid email address.'); return; }
+  if (!email)                       return showError('login-error', '⚠ Please enter your email.');
+  if (!/\S+@\S+\.\S+/.test(email)) return showError('login-error', '⚠ Enter a valid email address.');
+  if (!password)                    return showError('login-error', '⚠ Please enter your password.');
   showError('login-error', '');
   // 🔌 Connect Firebase auth here
   alert(`Logged in as ${email}\n\n(Connect Firebase to enable real auth.)`);
@@ -102,18 +93,25 @@ function handleSignup() {
   const email    = document.getElementById('signup-email')?.value.trim();
   const password = document.getElementById('signup-password')?.value;
   const confirm  = document.getElementById('signup-confirm')?.value;
-
-  if (!name)              { showError('signup-error', '⚠ Please enter your full name.'); return; }
-  if (!email)             { showError('signup-error', '⚠ Please enter your email.'); return; }
-  if (!/\S+@\S+\.\S+/.test(email)) { showError('signup-error', '⚠ Enter a valid email address.'); return; }
-  if (!password)          { showError('signup-error', '⚠ Please create a password.'); return; }
-  if (password.length < 6){ showError('signup-error', '⚠ Password must be at least 6 characters.'); return; }
-  if (password !== confirm){ showError('signup-error', '⚠ Passwords do not match.'); return; }
+  if (!name)                        return showError('signup-error', '⚠ Please enter your full name.');
+  if (!email)                       return showError('signup-error', '⚠ Please enter your email.');
+  if (!/\S+@\S+\.\S+/.test(email)) return showError('signup-error', '⚠ Enter a valid email address.');
+  if (!password)                    return showError('signup-error', '⚠ Please create a password.');
+  if (password.length < 6)          return showError('signup-error', '⚠ Password must be at least 6 characters.');
+  if (password !== confirm)         return showError('signup-error', '⚠ Passwords do not match.');
   showError('signup-error', '');
   // 🔌 Connect Firebase auth here
   alert(`Account created for ${name}!\n\n(Connect Firebase to enable real auth.)`);
   closeModal();
 }
+
+// Shared Google SVG — avoids duplicating the same markup in loginWithGoogle
+const GOOGLE_SVG = `<svg width="18" height="18" viewBox="0 0 18 18">
+  <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+  <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.909-2.259c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+  <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+  <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+</svg>`;
 
 function loginWithGoogle() {
   const btns = document.querySelectorAll('.btn-google');
@@ -121,8 +119,8 @@ function loginWithGoogle() {
   // 🔌 Connect Firebase Google OAuth here
   setTimeout(() => {
     btns.forEach(btn => { btn.disabled = false; });
-    document.querySelectorAll('.btn-google')[0].innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.909-2.259c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg> Continue with Google`;
-    document.querySelectorAll('.btn-google')[1].innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.909-2.259c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg> Sign up with Google`;
+    btns[0].innerHTML = `${GOOGLE_SVG} Continue with Google`;
+    btns[1].innerHTML = `${GOOGLE_SVG} Sign up with Google`;
     alert('Connect your Firebase or Google OAuth credentials to activate this.');
   }, 1400);
 }
@@ -130,35 +128,35 @@ function loginWithGoogle() {
 // Password strength meter
 document.addEventListener('DOMContentLoaded', () => {
   const pwInput = document.getElementById('signup-password');
-  if (pwInput) {
-    pwInput.addEventListener('input', () => {
-      const val   = pwInput.value;
-      const fill  = document.getElementById('strength-fill');
-      const label = document.getElementById('strength-label');
-      if (!fill || !label) return;
-      let score = 0;
-      if (val.length >= 6)  score++;
-      if (val.length >= 10) score++;
-      if (/[A-Z]/.test(val)) score++;
-      if (/[0-9]/.test(val)) score++;
-      if (/[^A-Za-z0-9]/.test(val)) score++;
-      const levels = [
-        { w:'0%',   c:'transparent', t:'' },
-        { w:'25%',  c:'#f87171',     t:'Weak' },
-        { w:'50%',  c:'#fb923c',     t:'Fair' },
-        { w:'75%',  c:'#facc15',     t:'Good' },
-        { w:'100%', c:'#10b981',     t:'Strong' },
-      ];
-      const lvl = levels[Math.min(score, 4)];
-      fill.style.width      = val ? lvl.w : '0%';
-      fill.style.background = lvl.c;
-      label.textContent     = val ? lvl.t : '';
-      label.style.color     = lvl.c;
-    });
-  }
-});
+  if (!pwInput) return;
+  pwInput.addEventListener('input', () => {
+    const val   = pwInput.value;
+    const fill  = document.getElementById('strength-fill');
+    const label = document.getElementById('strength-label');
+    if (!fill || !label) return;
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    // Score based on length, uppercase, numbers, symbols
+    let score = 0;
+    if (val.length >= 6)           score++;
+    if (val.length >= 10)          score++;
+    if (/[A-Z]/.test(val))         score++;
+    if (/[0-9]/.test(val))         score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const levels = [
+      { w:'0%',   c:'transparent', t:'' },
+      { w:'25%',  c:'#f87171',     t:'Weak' },
+      { w:'50%',  c:'#fb923c',     t:'Fair' },
+      { w:'75%',  c:'#facc15',     t:'Good' },
+      { w:'100%', c:'#10b981',     t:'Strong' },
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    fill.style.width      = val ? lvl.w : '0%';
+    fill.style.background = lvl.c;
+    label.textContent     = val ? lvl.t : '';
+    label.style.color     = lvl.c;
+  });
+});
 
 
 /* ============================================================
@@ -168,6 +166,7 @@ let cg_editor = null;
 let cg_lang   = 'javascript';
 let cg_ready  = false;
 
+// File extension map for download filenames
 const CG_EXT = {
   javascript:'js', python:'py', typescript:'ts', java:'java',
   cpp:'cpp', csharp:'cs', go:'go', rust:'rs',
@@ -187,6 +186,7 @@ function cg_initMonaco() {
       padding: { top: 14, bottom: 14 }, smoothScrolling: true, cursorBlinking: 'smooth',
     });
     cg_ready = true;
+    // Update footer counters on content change
     cg_editor.onDidChangeModelContent(() => {
       const v = cg_editor.getValue();
       const l = document.getElementById('cg-footer-lines');
@@ -201,14 +201,14 @@ function cg_changeLang() {
   const sel = document.getElementById('cgLangSelect');
   if (!sel) return;
   cg_lang = sel.value;
-  const ext = CG_EXT[cg_lang] || cg_lang;
   const tab = document.getElementById('cg-file-tab');
   const fl  = document.getElementById('cg-footer-lang');
-  if (tab) tab.textContent = `generated.${ext}`;
+  if (tab) tab.textContent = `generated.${CG_EXT[cg_lang] || cg_lang}`;
   if (fl)  fl.textContent  = sel.options[sel.selectedIndex].text;
   if (cg_editor) monaco.editor.setModelLanguage(cg_editor.getModel(), cg_lang);
 }
 
+// Send on Enter, new line on Shift+Enter
 function cg_handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); cg_sendMessage(); }
 }
@@ -240,18 +240,15 @@ function cg_showTyping() {
   box.appendChild(d); box.scrollTop = box.scrollHeight;
 }
 
-function cg_hideTyping() {
-  const el = document.getElementById('cg-typing');
-  if (el) el.remove();
-}
+function cg_hideTyping() { document.getElementById('cg-typing')?.remove(); }
 
 function cg_showEditor() {
-  const empty = document.getElementById('cg-empty');
-  const cont  = document.getElementById('monaco-editor-codegen');
-  if (empty) empty.style.display = 'none';
-  if (cont)  cont.style.display  = 'block';
+  // Hide placeholder, show Monaco editor
+  document.getElementById('cg-empty').style.display = 'none';
+  document.getElementById('monaco-editor-codegen').style.display = 'block';
 }
 
+// Extract code block from AI response (strips triple backticks)
 function cg_extractCode(text) {
   const m = text.match(/```(?:\w+)?\n?([\s\S]*?)```/);
   return m ? m[1].trim() : text.trim();
@@ -285,6 +282,7 @@ After the code block, write a brief 1–2 sentence explanation.`;
     const reply = data.content?.[0]?.text || 'Sorry, could not generate code.';
     cg_hideTyping();
     cg_addMsg('ai', reply);
+    // Inject generated code into Monaco editor
     if (cg_ready) { cg_showEditor(); cg_editor.setValue(cg_extractCode(reply)); }
   } catch {
     cg_hideTyping();
@@ -302,26 +300,24 @@ function cg_copyCode() {
 
 function cg_clearEditor() {
   if (cg_editor) cg_editor.setValue('');
-  const empty = document.getElementById('cg-empty');
-  const cont  = document.getElementById('monaco-editor-codegen');
-  if (empty) empty.style.display = 'grid';
-  if (cont)  cont.style.display  = 'none';
+  // Show empty placeholder, hide editor
+  document.getElementById('cg-empty').style.display = 'grid';
+  document.getElementById('monaco-editor-codegen').style.display = 'none';
 }
 
 function cg_download() {
   if (!cg_editor) return;
-  const ext  = CG_EXT[cg_lang] || 'txt';
-  const blob = new Blob([cg_editor.getValue()], { type: 'text/plain' });
-  const a    = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `generated.${ext}`; a.click();
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([cg_editor.getValue()], { type: 'text/plain' })),
+    download: `generated.${CG_EXT[cg_lang] || 'txt'}`
+  }); a.click();
 }
 
 
 /* ============================================================
    ASSISTANT PAGE
    ============================================================ */
-let as_editor = null;
+let as_editor  = null;
 let as_results = 0;
 
 function as_initMonaco() {
@@ -337,6 +333,7 @@ function as_initMonaco() {
       automaticLayout: true, lineNumbers: 'on',
       padding: { top: 14, bottom: 14 }, smoothScrolling: true,
     });
+    // Update footer counters on content change
     as_editor.onDidChangeModelContent(() => {
       const v = as_editor.getValue();
       const l = document.getElementById('as-footer-lines');
@@ -382,6 +379,7 @@ function as_clearOutput() {
   if (af) af.textContent = 'Waiting…';
 }
 
+// Each feature has a label, CSS class, icon, and AI prompt template
 const AS_FEATURES = {
   runner: {
     label: '▶ RUN', cls: 'runner', icon: '▶',
@@ -420,12 +418,14 @@ async function as_runFeature(type) {
   const bar  = document.getElementById('as-loading-bar');
   if (!area) return;
 
-  const ph = area.querySelector('.output-placeholder');
-  if (ph) ph.remove();
+  // Remove placeholder if present
+  area.querySelector('.output-placeholder')?.remove();
 
   if (af) af.textContent = `${cfg.icon} ${cfg.label}…`;
+  // Animate loading bar
   if (bar) { bar.style.width = '60%'; setTimeout(() => bar.style.width = '85%', 600); }
 
+  // Show a loading block while waiting for AI response
   const loadBlock = document.createElement('div');
   loadBlock.className = 'output-block'; loadBlock.id = 'as-loading-block';
   loadBlock.innerHTML = `<div class="ob-header ${cfg.cls}">${cfg.icon} ${cfg.label} — Processing…</div>
@@ -445,6 +445,7 @@ async function as_runFeature(type) {
     if (bar) { bar.style.width = '100%'; setTimeout(() => bar.style.width = '0', 500); }
     as_results++;
 
+    // Render the AI response as an output block
     const block = document.createElement('div');
     block.className = 'output-block';
     block.innerHTML = `<div class="ob-header ${cfg.cls}">${cfg.icon} ${cfg.label} — ${lang} · ${new Date().toLocaleTimeString()}</div>
@@ -471,6 +472,8 @@ async function as_runFeature(type) {
 /* ============================================================
    HISTORY PAGE
    ============================================================ */
+
+// Sample sessions shown on first load (before user creates real sessions)
 const HIST_SAMPLE = [
   { id:'h1', type:'gen', label:'Generator', lang:'Python', title:'Fibonacci sequence generator', time:'2h ago',
     messages:[
@@ -508,26 +511,30 @@ const HIST_SAMPLE = [
     ]}
 ];
 
+// Load from localStorage if available, otherwise use sample data
 let hist_sessions     = JSON.parse(localStorage.getItem('aipca_hist') || 'null') || HIST_SAMPLE;
 let hist_activeFilter = 'all';
 let hist_active       = null;
 
-function hist_save()  { localStorage.setItem('aipca_hist', JSON.stringify(hist_sessions)); }
+// Save current sessions to localStorage
+function hist_save() { localStorage.setItem('aipca_hist', JSON.stringify(hist_sessions)); }
 
 function hist_init() {
   if (!document.getElementById('hist-sessions-list')) return;
   hist_render();
+  // Update total stats counters
   const sc = document.getElementById('hist-stats-count');
   const sm = document.getElementById('hist-stats-msgs');
   if (sc) sc.textContent = hist_sessions.length;
-  if (sm) sm.textContent = hist_sessions.reduce((a,s) => a + s.messages.length, 0);
+  if (sm) sm.textContent = hist_sessions.reduce((a, s) => a + s.messages.length, 0);
 }
 
 function hist_render() {
-  const list   = document.getElementById('hist-sessions-list');
+  const list = document.getElementById('hist-sessions-list');
   if (!list) return;
   const search = (document.getElementById('hist-search')?.value || '').toLowerCase();
 
+  // Filter by active chip and search term
   const filtered = hist_sessions.filter(s => {
     const mf = hist_activeFilter === 'all' || s.type === hist_activeFilter;
     const ms = !search || s.title.toLowerCase().includes(search) || s.lang.toLowerCase().includes(search);
@@ -557,7 +564,8 @@ function hist_open(id) {
   hist_active = hist_sessions.find(s => s.id === id);
   if (!hist_active) return;
 
-  document.getElementById('hist-empty')?.setAttribute('style','display:none');
+  // Show content panel, hide empty state
+  document.getElementById('hist-empty')?.setAttribute('style', 'display:none');
   const cv = document.getElementById('hist-chat-view');
   const ha = document.getElementById('hist-content-actions');
   const ht = document.getElementById('hist-content-title');
@@ -565,6 +573,7 @@ function hist_open(id) {
   if (ha) ha.style.display = 'flex';
   if (ht) ht.innerHTML = `<span class="s-tag ${hist_active.type}">${hist_active.label}</span> ${hist_active.title}`;
 
+  // Render messages — output blocks get a special layout vs chat bubbles
   if (cv) {
     cv.innerHTML = hist_active.messages.map(m => {
       if (m.role === 'output') return `
@@ -586,6 +595,7 @@ function hist_open(id) {
 }
 
 function hist_setFilter(el) {
+  // Update active chip and re-render list
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   hist_activeFilter = el.dataset.filter;
@@ -609,6 +619,7 @@ function hist_deleteActive() {
 }
 
 function hist_resetContent() {
+  // Reset content panel back to empty state
   hist_active = null;
   document.getElementById('hist-empty')?.removeAttribute('style');
   const cv = document.getElementById('hist-chat-view');
@@ -629,8 +640,8 @@ function hist_exportSession() {
   const text = `# ${hist_active.title}\nType: ${hist_active.label} | Lang: ${hist_active.lang} | ${hist_active.time}\n\n` +
     hist_active.messages.map(m => `[${m.role.toUpperCase()}]\n${m.text}`).join('\n\n---\n\n');
   const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(new Blob([text], {type:'text/plain'})),
-    download: `${hist_active.title.replace(/\s+/g,'-')}.txt`
+    href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
+    download: `${hist_active.title.replace(/\s+/g, '-')}.txt`
   }); a.click();
 }
 
@@ -640,7 +651,7 @@ function hist_exportAll() {
     s.messages.map(m => `[${m.role.toUpperCase()}]\n${m.text}`).join('\n\n---\n\n')
   ).join('\n\n==========\n\n');
   const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(new Blob([text], {type:'text/plain'})),
+    href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
     download: 'aipca-history.txt'
   }); a.click();
 }
